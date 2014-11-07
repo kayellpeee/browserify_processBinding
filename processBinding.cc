@@ -1,6 +1,8 @@
 # define V8_INLINE inline
 class Value;
 template <class T> class Local;
+template <class T> class Handle;
+template<class T> class PersistentBase;
 class Function;
 class Object;
 class Isolate;
@@ -17,9 +19,71 @@ namespace internal {
   class GlobalHandles;
 }
 // private:
-class HandleScope;
+  // friend class HandleScope;
+
+// ---------
+
+template <class T> class Local : public Handle<T> {
+ public:
+  V8_INLINE Local();
+  template <class S> V8_INLINE Local(Local<S> that)
+      : Handle<T>(reinterpret_cast<T*>(*that)) {
+    /**
+     * This check fails when trying to convert between incompatible
+     * handles. For example, converting from a Handle<String> to a
+     * Handle<Number>.
+     */
+    TYPE_CHECK(T, S);
+  }
 
 
+  template <class S> V8_INLINE static Local<T> Cast(Local<S> that) {
+#ifdef V8_ENABLE_CHECKS
+    // If we're going to perform the type check then we have to check
+    // that the handle isn't empty before doing the checked cast.
+    if (that.IsEmpty()) return Local<T>();
+#endif
+    return Local<T>(T::Cast(*that));
+  }
+  template <class S> V8_INLINE Local(Handle<S> that)
+      : Handle<T>(reinterpret_cast<T*>(*that)) {
+    TYPE_CHECK(T, S);
+  }
+
+  template <class S> V8_INLINE Local<S> As() {
+    return Local<S>::Cast(*this);
+  }
+
+  /**
+   * Create a local handle for the content of another handle.
+   * The referee is kept alive by the local handle even when
+   * the original handle is destroyed/disposed.
+   */
+  V8_INLINE static Local<T> New(Isolate* isolate, Handle<T> that);
+  V8_INLINE static Local<T> New(Isolate* isolate,
+                                const PersistentBase<T>& that);
+
+ private:
+  friend class Utils;
+  template<class F> friend class Eternal;
+  template<class F> friend class PersistentBase;
+  template<class F, class M> friend class Persistent;
+  template<class F> friend class Handle;
+  template<class F> friend class Local;
+  template<class F> friend class FunctionCallbackInfo;
+  template<class F> friend class PropertyCallbackInfo;
+  friend class String;
+  friend class Object;
+  friend class Context;
+  template<class F> friend class internal::CustomArguments;
+  friend class HandleScope;
+  friend class EscapableHandleScope;
+  template<class F1, class F2, class F3> friend class PersistentValueMap;
+  template<class F1, class F2> friend class PersistentValueVector;
+
+  template <class S> V8_INLINE Local(S* that) : Handle<T>(that) { }
+  V8_INLINE static Local<T> New(Isolate* isolate, T* that);
+};
 
 // ---------
 
