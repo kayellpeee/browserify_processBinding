@@ -33,7 +33,7 @@ template <class T> class Local : public Handle<T> {
      * handles. For example, converting from a Handle<String> to a
      * Handle<Number>.
      */
-    TYPE_CHECK(T, S);
+    // TYPE_CHECK(T, S);
   }
 
 
@@ -47,7 +47,7 @@ template <class T> class Local : public Handle<T> {
   }
   template <class S> V8_INLINE Local(Handle<S> that)
       : Handle<T>(reinterpret_cast<T*>(*that)) {
-    TYPE_CHECK(T, S);
+    // TYPE_CHECK(T, S);
   }
 
   template <class S> V8_INLINE Local<S> As() {
@@ -123,6 +123,57 @@ class FunctionCallbackInfo {
   int length_;
   bool is_construct_call_;
 };
+
+// -----------
+
+class HandleScope {
+ public:
+  HandleScope(Isolate* isolate);
+
+  ~HandleScope();
+
+  /**
+   * Counts the number of allocated handles.
+   */
+  static int NumberOfHandles(Isolate* isolate);
+
+  V8_INLINE Isolate* GetIsolate() const {
+    return reinterpret_cast<Isolate*>(isolate_);
+  }
+
+ protected:
+  V8_INLINE HandleScope() {}
+
+  void Initialize(Isolate* isolate);
+
+  static internal::Object** CreateHandle(internal::Isolate* isolate,
+                                         internal::Object* value);
+
+ private:
+  // Uses heap_object to obtain the current Isolate.
+  static internal::Object** CreateHandle(internal::HeapObject* heap_object,
+                                         internal::Object* value);
+
+  // Make it hard to create heap-allocated or illegal handle scopes by
+  // disallowing certain operations.
+  HandleScope(const HandleScope&);
+  void operator=(const HandleScope&);
+  void* operator new(size_t size);
+  void operator delete(void*, size_t);
+
+  internal::Isolate* isolate_;
+  internal::Object** prev_next_;
+  internal::Object** prev_limit_;
+
+  // Local::New uses CreateHandle with an Isolate* parameter.
+  template<class F> friend class Local;
+
+  // Object::GetInternalField and Context::GetEmbedderData use CreateHandle with
+  // a HeapObject* in their shortcuts.
+  friend class Object;
+  friend class Context;
+};
+
 
 // -----------
 
@@ -252,52 +303,3 @@ int FunctionCallbackInfo<T>::Length() const {
 
 
 // ----------
-// class V8_EXPORT HandleScope {
-//  public:
-//   HandleScope(Isolate* isolate);
-
-//   ~HandleScope();
-
-//   /**
-//    * Counts the number of allocated handles.
-//    */
-//   static int NumberOfHandles(Isolate* isolate);
-
-//   V8_INLINE Isolate* GetIsolate() const {
-//     return reinterpret_cast<Isolate*>(isolate_);
-//   }
-
-//  protected:
-//   V8_INLINE HandleScope() {}
-
-//   void Initialize(Isolate* isolate);
-
-//   static internal::Object** CreateHandle(internal::Isolate* isolate,
-//                                          internal::Object* value);
-
-//  private:
-//   // Uses heap_object to obtain the current Isolate.
-//   static internal::Object** CreateHandle(internal::HeapObject* heap_object,
-//                                          internal::Object* value);
-
-//   // Make it hard to create heap-allocated or illegal handle scopes by
-//   // disallowing certain operations.
-//   HandleScope(const HandleScope&);
-//   void operator=(const HandleScope&);
-//   void* operator new(size_t size);
-//   void operator delete(void*, size_t);
-
-//   internal::Isolate* isolate_;
-//   internal::Object** prev_next_;
-//   internal::Object** prev_limit_;
-
-//   // Local::New uses CreateHandle with an Isolate* parameter.
-//   template<class F> friend class Local;
-
-//   // Object::GetInternalField and Context::GetEmbedderData use CreateHandle with
-//   // a HeapObject* in their shortcuts.
-//   friend class Object;
-//   friend class Context;
-// };
-
-
