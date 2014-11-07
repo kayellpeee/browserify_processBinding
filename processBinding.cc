@@ -17,7 +17,9 @@ namespace internal {
   class GlobalHandles;
 }
 // private:
-  // friend class HandleScope;
+class HandleScope;
+
+
 
 // ---------
 
