@@ -709,6 +709,37 @@ namespace internal {
 
     void AssignToContext(Local<Context> context);
 
+    // ------uv_loop_t--------
+      struct uv_loop_s {
+        /* User data - use this for whatever. */
+        void* data;
+        /* Loop reference counting. */
+        unsigned int active_handles;
+        void* handle_queue[2];
+        void* active_reqs[2];
+        /* Internal flag to signal loop stop. */
+        unsigned int stop_flag;
+        // UV_LOOP_PRIVATE_FIELDS
+      };
+      typedef struct uv_loop_s uv_loop_t;
+
+      #define UV_HANDLE_FIELDS                                                      \
+        /* public */                                                                \
+        void* data;                                                                 \
+        /* read-only */                                                             \
+        uv_loop_t* loop;                                                            \
+        uv_handle_type type;                                                        \
+        /* private */                                                               \
+        uv_close_cb close_cb;                                                       \
+        void* handle_queue[2];                                                      \
+        UV_HANDLE_PRIVATE_FIELDS
+
+      struct uv_check_s {
+        UV_HANDLE_FIELDS
+        UV_CHECK_PRIVATE_FIELDS
+      };
+      typedef struct uv_check_s uv_check_t;
+
     inline Isolate* isolate() const;
     inline uv_loop_t* event_loop() const;
     inline bool has_async_listener() const;
